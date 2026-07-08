@@ -3,10 +3,27 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import FlechaAtras from '@/components/FlechaAtras';
 
+interface Materia {
+  id: string;
+  codigo: string;
+  nombre: string;
+  tramo: number;
+}
+
+interface Periodo {
+  id: string;
+  nombre: string;
+}
+
+interface Profesor {
+  id: string;
+  nombre: string;
+}
+
 export default function NewCourse() {
-  const [materias, setMaterias] = useState<any[]>([]);
-  const [periodos, setPeriodos] = useState<any[]>([]);
-  const [profesores, setProfesores] = useState<any[]>([]);
+  const [materias, setMaterias] = useState<Materia[]>([]);
+  const [periodos, setPeriodos] = useState<Periodo[]>([]);
+  const [profesores, setProfesores] = useState<Profesor[]>([]);
   const [form, setForm] = useState({
     materiaId: '',
     periodoId: '',
@@ -33,9 +50,8 @@ export default function NewCourse() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
     });
-    if (res.ok) {
-      router.push('/dashboard/coordinator');
-    } else {
+    if (res.ok) router.push('/dashboard/coordinator');
+    else {
       const error = await res.json().catch(() => ({ error: 'Error desconocido' }));
       alert(error.error || 'Error al crear el curso');
     }
@@ -44,7 +60,6 @@ export default function NewCourse() {
   return (
     <div className="p-6 max-w-md">
       <FlechaAtras label="Volver al panel" />
-
       <h1 className="text-2xl mb-4 mt-2">Nuevo Curso</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -56,7 +71,7 @@ export default function NewCourse() {
             required
           >
             <option value="">Selecciona materia</option>
-            {materias.map((m: any) => (
+            {materias.map(m => (
               <option key={m.id} value={m.id}>
                 {m.codigo} - {m.nombre} (Tramo {m.tramo})
               </option>
@@ -78,7 +93,7 @@ export default function NewCourse() {
             required
           >
             <option value="">Selecciona período</option>
-            {periodos.map((p: any) => (
+            {periodos.map(p => (
               <option key={p.id} value={p.id}>{p.nombre}</option>
             ))}
           </select>
@@ -93,7 +108,7 @@ export default function NewCourse() {
             required
           >
             <option value="">Selecciona profesor</option>
-            {profesores.map((p: any) => (
+            {profesores.map(p => (
               <option key={p.id} value={p.id}>{p.nombre}</option>
             ))}
           </select>

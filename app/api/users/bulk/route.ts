@@ -17,10 +17,12 @@ export async function POST(req: NextRequest) {
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: 'array' });
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const rows: any[] = XLSX.utils.sheet_to_json(sheet);
+  const rows: Record<string, string>[] = XLSX.utils.sheet_to_json(sheet);
 
   const defaultPassword = await bcrypt.hash('123456', 10);
-  let inserted = 0, duplicates = 0, total = rows.length;
+  let inserted = 0;
+  let duplicates = 0;
+  const total = rows.length;
   const errors: string[] = [];
 
   for (const row of rows) {

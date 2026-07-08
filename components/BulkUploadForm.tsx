@@ -1,16 +1,23 @@
 'use client';
 import { useState } from 'react';
 
+interface UploadResult {
+  total: number;
+  inserted: number;
+  duplicates: number;
+  errors?: string[];
+}
+
 export default function BulkUploadForm() {
   const [file, setFile] = useState<File | null>(null);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<UploadResult | null>(null);
 
   const handleUpload = async () => {
     if (!file) return;
     const formData = new FormData();
     formData.append('file', file);
     const res = await fetch('/api/users/bulk', { method: 'POST', body: formData });
-    const data = await res.json();
+    const data: UploadResult = await res.json();
     setResult(data);
   };
 
@@ -24,9 +31,9 @@ export default function BulkUploadForm() {
           <p>Procesados: {result.total}</p>
           <p>Insertados: {result.inserted}</p>
           <p>Duplicados: {result.duplicates}</p>
-          {result.errors?.length > 0 && (
+          {result.errors && result.errors.length > 0 && (
             <div className="text-red-400">
-              Errores: {result.errors.map((e: string, i: number) => <div key={i}>{e}</div>)}
+              Errores: {result.errors.map((e, i) => <div key={i}>{e}</div>)}
             </div>
           )}
         </div>

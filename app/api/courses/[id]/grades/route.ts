@@ -3,6 +3,12 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
+interface GradeRow {
+  inscripcionId: string;
+  asistencia: number;
+  notas: Record<string, number | null>;
+}
+
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user || session.user.role !== 'PROFESOR') {
@@ -10,14 +16,12 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
 
   const courseId = params.id;
-  let data;
+  let data: GradeRow[];
   try {
     data = await req.json();
   } catch {
     return NextResponse.json({ error: 'JSON inválido' }, { status: 400 });
   }
-
-  console.log('Datos recibidos:', JSON.stringify(data));
 
   if (!Array.isArray(data)) {
     return NextResponse.json({ error: 'Se esperaba un arreglo de estudiantes' }, { status: 400 });
@@ -36,7 +40,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       if (notas && typeof notas === 'object') {
         for (const planId of Object.keys(notas)) {
           const rawNota = notas[planId];
-          const nota = rawNota !== null && rawNota !== undefined ? parseFloat(rawNota) : null;
+          const nota = rawNota !== null && rawNota !== undefined ? parseFloat(String(rawNota)) : null;
 
           if (nota !== null && (isNaN(nota) || nota < 0 || nota > 20)) {
             return NextResponse.json({ error: `Nota inválida para plan ${planId}: ${rawNota}` }, { status: 400 });
@@ -60,12 +64,12 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         let sum = 0;
         let all = true;
         for (const p of planRows.rows) {
-          const ev = evalRows.rows.find((e: any) => e.plan_evaluacion_id === p.id);
+          const ev = evalRows.rows.find((e: Record<string, unknown>) => e.plan_evaluacion_id === p.id);
           if (!ev || ev.nota === null) {
             all = false;
             break;
           }
-          sum += ev.nota * (p.porcentaje / 100);
+          sum += (ev.nota as number) * (p.porcentaje as number) / 100;
         }
         if (all) notaFinal = Math.round(sum * 100) / 100;
       }
@@ -74,8 +78,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     }
 
     return NextResponse.json({ success: true });
-  } catch (err: any) {
-    console.error('Error en PUT grades:', err);
-    return NextResponse.json({ error: 'Error interno del servidor: ' + err.message }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }

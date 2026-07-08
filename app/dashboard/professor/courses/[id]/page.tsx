@@ -13,6 +13,14 @@ interface PlanItem {
   orden: number;
 }
 
+interface StudentData {
+  inscripcionId: string;
+  nombre: string;
+  cedula: string;
+  asistencia: number;
+  notas: Record<string, number | null>;
+}
+
 export default async function ProfessorCourseDetail({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   const courseId = params.id;
@@ -23,11 +31,11 @@ export default async function ProfessorCourseDetail({ params }: { params: { id: 
   if (!course) return <div className="p-6 text-red-400">No autorizado</div>;
 
   const { rows: planRows } = await sql`SELECT * FROM plan_evaluacion WHERE curso_id = ${courseId} ORDER BY orden`;
-  const planItems: PlanItem[] = planRows.map((row: any) => ({
-    id: row.id,
-    nombre: row.nombre,
-    porcentaje: row.porcentaje,
-    orden: row.orden,
+  const planItems: PlanItem[] = planRows.map((row: Record<string, unknown>) => ({
+    id: row.id as string,
+    nombre: row.nombre as string,
+    porcentaje: row.porcentaje as number,
+    orden: row.orden as number,
   }));
 
   const { rows: estudiantes } = await sql`
@@ -41,29 +49,25 @@ export default async function ProfessorCourseDetail({ params }: { params: { id: 
     ORDER BY e.nombre
   `;
 
-  const students = estudiantes.map((est: any) => ({
-    inscripcionId: est.inscripcion_id,
-    nombre: est.nombre,
-    cedula: est.cedula,
-    asistencia: est.asistencia,
-    notas: est.notas.reduce((acc: any, n: any) => {
-      if (n.plan_id) acc[n.plan_id] = n.nota;
+  const students: StudentData[] = estudiantes.map((est: Record<string, unknown>) => ({
+    inscripcionId: est.inscripcion_id as string,
+    nombre: est.nombre as string,
+    cedula: est.cedula as string,
+    asistencia: est.asistencia as number,
+    notas: (est.notas as Array<{ plan_id?: string; nota?: number | null }>).reduce((acc, n) => {
+      if (n.plan_id) acc[n.plan_id] = n.nota ?? null;
       return acc;
-    }, {}),
+    }, {} as Record<string, number | null>),
   }));
 
   return (
     <div className="p-6">
       <FlechaAtras label="Volver a Mis Cursos" />
-
       <h1 className="text-2xl mb-2">{course.nombre} ({course.codigo})</h1>
-
       <h2 className="text-xl mb-4">Plan de Evaluación</h2>
       <PlanEvaluacionEditor courseId={courseId} initialPlan={planItems} />
-
       <h2 className="text-xl mt-8 mb-4">Notas de Estudiantes</h2>
       <GradesTable courseId={courseId} plan={planItems} students={students} />
-
       <div className="mt-6">
         <ActaButton courseId={courseId} />
       </div>

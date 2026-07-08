@@ -23,7 +23,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
   }
 
-  // Obtener código y nombre de la materia
   const { rows: [materia] } = await sql`
     SELECT codigo, nombre FROM materia WHERE id = ${materiaId}
   `;
@@ -37,8 +36,7 @@ export async function POST(req: Request) {
       VALUES (${materia.codigo}, ${materia.nombre}, ${materiaId}, ${periodoId}, ${profesorId})
     `;
     return NextResponse.json({ success: true }, { status: 201 });
-  } catch (error: any) {
-    console.error('Error al crear curso:', error);
+  } catch {
     return NextResponse.json({ error: 'Error al crear el curso' }, { status: 500 });
   }
 }

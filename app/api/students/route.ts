@@ -18,7 +18,7 @@ export async function GET() {
       ORDER BY u.nombre
     `;
     return NextResponse.json(rows);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Error al obtener estudiantes' }, { status: 500 });
   }
 }
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
       RETURNING id
     `;
     return NextResponse.json({ success: true, id: estudiante.id }, { status: 201 });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Error al crear estudiante' }, { status: 500 });
   }
 }

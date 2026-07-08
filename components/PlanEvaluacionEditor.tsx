@@ -30,22 +30,25 @@ export default function PlanEvaluacionEditor({
   };
 
   const handleRemove = (index: number) => {
-    const newItems = items.filter((_, i) => i !== index).map((p, i) => ({ ...p, orden: i + 1 }));
+    const newItems = items.filter((_item, i) => i !== index).map((p, i) => ({ ...p, orden: i + 1 }));
     setItems(newItems);
     setFieldErrors({});
   };
 
   const handleChange = (index: number, field: string, value: string) => {
-    const newItems = [...items];
-    if (field === 'porcentaje') {
-      let num = parseFloat(value);
-      if (isNaN(num)) num = 0;
-      num = clamp(num, 0, 100);
-      newItems[index].porcentaje = num;
-    } else {
-      (newItems[index] as any)[field] = value;
-    }
-    setItems(newItems);
+    setItems(prev =>
+      prev.map((item, idx) => {
+        if (idx !== index) return item;
+        if (field === 'nombre') return { ...item, nombre: value };
+        if (field === 'porcentaje') {
+          let num = parseFloat(value);
+          if (isNaN(num)) num = 0;
+          num = clamp(num, 0, 100);
+          return { ...item, porcentaje: num };
+        }
+        return item;
+      })
+    );
   };
 
   const handlePorcentajeBlur = (index: number, value: string) => {
@@ -58,9 +61,13 @@ export default function PlanEvaluacionEditor({
       );
     } else {
       setFieldErrors(prev => {
-        const { [index]: _, ...rest } = prev;
-        return rest;
+        const newErrors = { ...prev };
+        delete newErrors[index];
+        return newErrors;
       });
+      setItems(prev =>
+        prev.map((item, i) => (i === index ? { ...item, porcentaje: num } : item))
+      );
     }
   };
 

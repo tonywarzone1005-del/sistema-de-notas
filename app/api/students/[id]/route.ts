@@ -49,7 +49,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       WHERE id = ${params.id}
     `;
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Error al actualizar' }, { status: 500 });
   }
 }
@@ -67,7 +67,7 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     await sql`DELETE FROM estudiante WHERE id = ${params.id}`;
     await sql`DELETE FROM usuario WHERE id = ${est.usuario_id}`;
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Error al eliminar' }, { status: 500 });
   }
 }

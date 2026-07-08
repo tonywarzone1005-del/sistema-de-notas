@@ -3,6 +3,14 @@ import { renderToStream } from '@react-pdf/renderer';
 import { ActaPDF } from '@/lib/acta-pdf';
 import { NextRequest } from 'next/server';
 
+interface ActaEstudiante {
+  nombre: string;
+  cedula: string;
+  asistencia: number;
+  notas: { nombre: string; nota: number | null }[];
+  notaFinal: number | null;
+}
+
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const courseId = params.id;
 
@@ -15,7 +23,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   `;
   if (!course) return new Response('Curso no encontrado', { status: 404 });
 
-  const { rows: plan } = await sql`SELECT * FROM plan_evaluacion WHERE curso_id = ${courseId} ORDER BY orden`;
   const { rows: students } = await sql`
     SELECT e.nombre, e.cedula, i.asistencia, i.nota_final,
            json_agg(json_build_object('nombre', pe.nombre, 'nota', ev.nota) ORDER BY pe.orden) as notas
@@ -28,22 +35,24 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     ORDER BY e.nombre
   `;
 
+  const estudiantes: ActaEstudiante[] = students.map((s: Record<string, unknown>) => ({
+    nombre: s.nombre as string,
+    cedula: s.cedula as string,
+    asistencia: s.asistencia as number,
+    notas: (s.notas as ActaEstudiante['notas']) || [],
+    notaFinal: s.nota_final as number | null,
+  }));
+
   const data = {
-    curso: course.nombre,
-    codigo: course.codigo,
-    tramo: course.tramo,
-    periodo: course.periodo,
-    estudiantes: students.map((s: any) => ({
-      nombre: s.nombre,
-      cedula: s.cedula,
-      asistencia: s.asistencia,
-      notas: s.notas || [],
-      notaFinal: s.nota_final,
-    })),
+    curso: course.nombre as string,
+    codigo: course.codigo as string,
+    tramo: course.tramo as number,
+    periodo: course.periodo as string,
+    estudiantes,
   };
 
   const stream = await renderToStream(<ActaPDF data={data} />);
-  return new Response(stream as any, {
+  return new Response(stream as unknown as BodyInit, {
     headers: {
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename=acta_${course.codigo}.pdf`,

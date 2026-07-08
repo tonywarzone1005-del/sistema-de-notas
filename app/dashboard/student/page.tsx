@@ -4,6 +4,15 @@ import { sql } from '@/lib/db';
 import Link from 'next/link';
 import LogoutButton from '@/components/LogoutButton';
 
+interface StudentCourse {
+  id: string;
+  codigo: string;
+  nombre: string;
+  tramo: number;
+  periodo: string;
+  nota_final: number | null;
+}
+
 export default async function StudentDashboard() {
   const session = await getServerSession(authOptions);
   if (!session?.user) return null;
@@ -21,6 +30,15 @@ export default async function StudentDashboard() {
     ORDER BY c.codigo
   `;
 
+  const studentCourses: StudentCourse[] = courses.map((row) => ({
+    id: row.id as string,
+    codigo: row.codigo as string,
+    nombre: row.nombre as string,
+    tramo: row.tramo as number,
+    periodo: row.periodo as string,
+    nota_final: row.nota_final as number | null,
+  }));
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -28,12 +46,8 @@ export default async function StudentDashboard() {
         <LogoutButton />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {courses.map((c: any) => (
-          <Link
-            key={c.id}
-            href={`/dashboard/student/courses/${c.id}`}
-            className="bg-gray-800 p-4 rounded hover:bg-gray-700"
-          >
+        {studentCourses.map((c) => (
+          <Link key={c.id} href={`/dashboard/student/courses/${c.id}`} className="bg-gray-800 p-4 rounded hover:bg-gray-700">
             <h2 className="text-xl">{c.nombre}</h2>
             <p>Código: {c.codigo} | Tramo: {c.tramo} | Período: {c.periodo}</p>
             <p>Nota final: {c.nota_final !== null ? c.nota_final.toFixed(2) : '—'}</p>

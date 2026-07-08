@@ -3,6 +3,18 @@ import { authOptions } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import FlechaAtras from '@/components/FlechaAtras';
 
+interface PlanItem {
+  id: string;
+  nombre: string;
+  porcentaje: number;
+}
+
+interface EvaluacionItem {
+  nota: number | null;
+  nombre: string;
+  porcentaje: number;
+}
+
 export default async function StudentCourseDetail({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   const courseId = params.id;
@@ -17,7 +29,13 @@ export default async function StudentCourseDetail({ params }: { params: { id: st
   `;
   if (!ins) return <div className="p-6">No estás inscrito</div>;
 
-  const { rows: plan } = await sql`SELECT * FROM plan_evaluacion WHERE curso_id = ${courseId} ORDER BY orden`;
+  const { rows: planRows } = await sql`SELECT * FROM plan_evaluacion WHERE curso_id = ${courseId} ORDER BY orden`;
+  const planItems: PlanItem[] = planRows.map((p: Record<string, unknown>) => ({
+    id: p.id as string,
+    nombre: p.nombre as string,
+    porcentaje: p.porcentaje as number,
+  }));
+
   const { rows: evaluaciones } = await sql`
     SELECT ev.nota, pe.nombre, pe.porcentaje
     FROM evaluacion ev
@@ -26,14 +44,19 @@ export default async function StudentCourseDetail({ params }: { params: { id: st
     ORDER BY pe.orden
   `;
 
-  const asistencia = ins.asistencia;
-  const notaFinal = ins.nota_final;
+  const evItems: EvaluacionItem[] = evaluaciones.map((ev: Record<string, unknown>) => ({
+    nota: ev.nota as number | null,
+    nombre: ev.nombre as string,
+    porcentaje: ev.porcentaje as number,
+  }));
+
+  const asistencia = ins.asistencia as number;
+  const notaFinal = ins.nota_final as number | null;
   const reprobado = asistencia < 75;
 
   return (
     <div className="p-6">
       <FlechaAtras label="Volver a Mis Cursos" />
-
       <h1 className="text-2xl mb-4">Detalle del Curso</h1>
       <div className="bg-gray-800 p-4 rounded mb-4">
         <p>Asistencia: {asistencia}% {reprobado && <span className="text-red-400 ml-2">Asistencia insuficiente (&lt;75%)</span>}</p>
@@ -49,8 +72,8 @@ export default async function StudentCourseDetail({ params }: { params: { id: st
           </tr>
         </thead>
         <tbody>
-          {plan.map((p: any) => {
-            const ev = evaluaciones.find((e: any) => e.nombre === p.nombre);
+          {planItems.map(p => {
+            const ev = evItems.find(e => e.nombre === p.nombre);
             return (
               <tr key={p.id} className="border-t border-gray-600">
                 <td className="p-2">{p.nombre}</td>

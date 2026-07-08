@@ -46,10 +46,7 @@ export default function GradesTable({
     const num = integerOnly ? parseInt(value, 10) : parseFloat(value);
 
     if (isNaN(num) || num < min || num > max || (integerOnly && !Number.isInteger(num))) {
-      setErrors(prev => ({
-        ...prev,
-        [key]: `${label} debe estar entre ${min} y ${max}${integerOnly ? ' (entero)' : ''}`,
-      }));
+      setErrors(prev => ({ ...prev, [key]: `${label} debe estar entre ${min} y ${max}${integerOnly ? ' (entero)' : ''}` }));
       alert(`${label} inválido (${min}–${max}${integerOnly ? ', entero' : ''}). Se restauró el valor anterior.`);
       setStudents(prev =>
         prev.map(s => {
@@ -60,8 +57,9 @@ export default function GradesTable({
       );
     } else {
       setErrors(prev => {
-        const { [key]: _, ...rest } = prev;
-        return rest;
+        const newErrors = { ...prev };
+        delete newErrors[key];
+        return newErrors;
       });
     }
   };
@@ -103,38 +101,25 @@ export default function GradesTable({
       alert('Corrige los valores inválidos antes de guardar.');
       return;
     }
-
     setSaving(true);
     const payload = students.map(s => ({
       inscripcionId: s.inscripcionId,
       asistencia: s.asistencia,
       notas: s.notas,
     }));
-
-    try {
-      const res = await fetch(`/api/courses/${courseId}/grades`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        alert('✅ Cambios guardados correctamente. La página se refrescará.');
-        // Recargar para que el PDF posterior muestre los datos actualizados
-        setTimeout(() => {
-          window.location.reload();
-        }, 500);
-      } else {
-        const errorData = await res.json().catch(() => ({ error: 'Error desconocido' }));
-        alert('❌ Error al guardar: ' + (errorData.error || 'Respuesta inesperada'));
-        console.error('Error del servidor:', errorData);
-      }
-    } catch (err: any) {
-      alert('❌ No se pudo conectar con el servidor.');
-      console.error(err);
-    } finally {
-      setSaving(false);
+    const res = await fetch(`/api/courses/${courseId}/grades`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      alert('✅ Cambios guardados correctamente.');
+      setTimeout(() => window.location.reload(), 500);
+    } else {
+      const errorData = await res.json().catch(() => ({ error: 'Error desconocido' }));
+      alert('❌ Error al guardar: ' + (errorData.error || 'Respuesta inesperada'));
     }
+    setSaving(false);
   };
 
   return (

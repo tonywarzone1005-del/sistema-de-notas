@@ -3,6 +3,28 @@ import { authOptions } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import FlechaAtras from '@/components/FlechaAtras';
 
+interface CourseDetail {
+  codigo: string;
+  nombre: string;
+  tramo: number;
+  periodo: string;
+  profesor: string;
+}
+
+interface PlanItem {
+  id: string;
+  nombre: string;
+  porcentaje: number;
+}
+
+interface EstudianteNota {
+  inscripcionId: string;
+  nombre: string;
+  cedula: string;
+  asistencia: number;
+  notas: Record<string, number | null>;
+}
+
 export default async function CoordinatorCourseDetail({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user || session.user.role !== 'COORDINADOR') {
@@ -21,7 +43,20 @@ export default async function CoordinatorCourseDetail({ params }: { params: { id
   `;
   if (!course) return <div className="p-6 text-red-400">Curso no encontrado</div>;
 
-  const { rows: planItems } = await sql`SELECT * FROM plan_evaluacion WHERE curso_id = ${courseId} ORDER BY orden`;
+  const courseData: CourseDetail = {
+    codigo: course.codigo as string,
+    nombre: course.nombre as string,
+    tramo: course.tramo as number,
+    periodo: course.periodo as string,
+    profesor: course.profesor as string,
+  };
+
+  const { rows: planRows } = await sql`SELECT * FROM plan_evaluacion WHERE curso_id = ${courseId} ORDER BY orden`;
+  const planItems: PlanItem[] = planRows.map((row: Record<string, unknown>) => ({
+    id: row.id as string,
+    nombre: row.nombre as string,
+    porcentaje: row.porcentaje as number,
+  }));
 
   const { rows: estudiantes } = await sql`
     SELECT i.id as inscripcion_id, e.nombre as estudiante_nombre, e.cedula, i.asistencia,
@@ -34,18 +69,18 @@ export default async function CoordinatorCourseDetail({ params }: { params: { id
     ORDER BY e.nombre
   `;
 
-  const students = estudiantes.map((est: any) => ({
-    inscripcionId: est.inscripcion_id,
-    nombre: est.estudiante_nombre,
-    cedula: est.cedula,
-    asistencia: est.asistencia,
-    notas: est.notas.reduce((acc: any, n: any) => {
-      if (n.plan_id) acc[n.plan_id] = n.nota;
+  const students: EstudianteNota[] = estudiantes.map((est: Record<string, unknown>) => ({
+    inscripcionId: est.inscripcion_id as string,
+    nombre: est.estudiante_nombre as string,
+    cedula: est.cedula as string,
+    asistencia: est.asistencia as number,
+    notas: (est.notas as Array<{ plan_id?: string; nota?: number | null }>).reduce((acc, n) => {
+      if (n.plan_id) acc[n.plan_id] = n.nota ?? null;
       return acc;
-    }, {}),
+    }, {} as Record<string, number | null>),
   }));
 
-  const calcularNotaFinal = (s: any) => {
+  const calcularNotaFinal = (s: EstudianteNota) => {
     if (s.asistencia < 75) return { value: 0.0, reprobado: true };
     let sum = 0;
     for (const p of planItems) {
@@ -60,9 +95,9 @@ export default async function CoordinatorCourseDetail({ params }: { params: { id
     <div className="p-6">
       <FlechaAtras label="Volver a cursos" />
 
-      <h1 className="text-2xl font-bold mb-2">{course.nombre} ({course.codigo})</h1>
+      <h1 className="text-2xl font-bold mb-2">{courseData.nombre} ({courseData.codigo})</h1>
       <p className="text-gray-400 mb-6">
-        Tramo {course.tramo} | Período {course.periodo} | Profesor: {course.profesor}
+        Tramo {courseData.tramo} | Período {courseData.periodo} | Profesor: {courseData.profesor}
       </p>
 
       <h2 className="text-xl mb-3">Plan de Evaluación</h2>
@@ -77,7 +112,7 @@ export default async function CoordinatorCourseDetail({ params }: { params: { id
             </tr>
           </thead>
           <tbody>
-            {planItems.map((p: any) => (
+            {planItems.map(p => (
               <tr key={p.id} className="border-t border-gray-600">
                 <td className="p-2">{p.nombre}</td>
                 <td className="p-2 text-center">{p.porcentaje}%</td>
@@ -95,7 +130,7 @@ export default async function CoordinatorCourseDetail({ params }: { params: { id
               <th className="p-2 text-left">Estudiante</th>
               <th className="p-2 text-center">Cédula</th>
               <th className="p-2 text-center">Asistencia (%)</th>
-              {planItems.map((p: any) => (
+              {planItems.map(p => (
                 <th key={p.id} className="p-2 text-center">{p.nombre} ({p.porcentaje}%)</th>
               ))}
               <th className="p-2 text-center">Nota Final</th>
@@ -109,7 +144,7 @@ export default async function CoordinatorCourseDetail({ params }: { params: { id
                   <td className="p-2">{s.nombre}</td>
                   <td className="p-2 text-center">{s.cedula}</td>
                   <td className="p-2 text-center">{s.asistencia}%</td>
-                  {planItems.map((p: any) => (
+                  {planItems.map(p => (
                     <td key={p.id} className="p-2 text-center">
                       {s.notas[p.id] !== undefined && s.notas[p.id] !== null ? s.notas[p.id] : '-'}
                     </td>
