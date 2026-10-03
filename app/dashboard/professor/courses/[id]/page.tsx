@@ -2,9 +2,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import FlechaAtras from '@/components/FlechaAtras';
-import PlanEvaluacionEditor from '@/components/PlanEvaluacionEditor';
-import GradesTable from '@/components/GradesTable';
-import ActaButton from '@/components/ActaButton';
+import CourseTabs from '@/components/CourseTabs';
 
 interface PlanItem {
   id?: string;
@@ -26,7 +24,11 @@ export default async function ProfessorCourseDetail({ params }: { params: { id: 
   const courseId = params.id;
 
   const { rows: [course] } = await sql`
-    SELECT id, codigo, nombre FROM curso WHERE id = ${courseId} AND profesor_id = ${session!.user.id}
+    SELECT c.id, c.codigo, c.nombre, m.tramo, p.nombre as periodo
+    FROM curso c
+    JOIN materia m ON c.materia_id = m.id
+    JOIN periodo p ON c.periodo_id = p.id
+    WHERE c.id = ${courseId} AND c.profesor_id = ${session!.user.id}
   `;
   if (!course) return <div className="p-6 text-red-400">No autorizado</div>;
 
@@ -61,16 +63,27 @@ export default async function ProfessorCourseDetail({ params }: { params: { id: 
   }));
 
   return (
-    <div className="p-6">
+    <div className="p-6 max-w-6xl mx-auto">
       <FlechaAtras label="Volver a Mis Cursos" />
-      <h1 className="text-2xl mb-2">{course.nombre} ({course.codigo})</h1>
-      <h2 className="text-xl mb-4">Plan de Evaluación</h2>
-      <PlanEvaluacionEditor courseId={courseId} initialPlan={planItems} />
-      <h2 className="text-xl mt-8 mb-4">Notas de Estudiantes</h2>
-      <GradesTable courseId={courseId} plan={planItems} students={students} />
-      <div className="mt-6">
-        <ActaButton courseId={courseId} />
+
+      {/* Encabezado del curso */}
+      <div className="mt-4 mb-8 bg-gradient-to-r from-blue-900 via-indigo-900 to-purple-900 p-6 rounded-xl shadow-lg">
+        <h1 className="text-3xl font-bold">{course.nombre}</h1>
+        <div className="flex flex-wrap gap-3 mt-3 text-sm">
+          <span className="bg-gray-800/70 px-3 py-1 rounded-full">
+            Código: <strong>{course.codigo}</strong>
+          </span>
+          <span className="bg-gray-800/70 px-3 py-1 rounded-full">
+            Tramo {course.tramo}
+          </span>
+          <span className="bg-gray-800/70 px-3 py-1 rounded-full">
+            Período: {course.periodo}
+          </span>
+        </div>
       </div>
+
+      {/* Pestañas: Plan de Evaluación | Registrar Notas | Acta */}
+      <CourseTabs courseId={courseId} planItems={planItems} students={students} />
     </div>
   );
 }

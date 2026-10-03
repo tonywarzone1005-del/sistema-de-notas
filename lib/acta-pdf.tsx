@@ -1,14 +1,25 @@
+/* eslint-disable jsx-a11y/alt-text */
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
   page: { padding: 30, fontSize: 10 },
-  title: { fontSize: 18, marginBottom: 10, textAlign: 'center' },
-  subtitle: { fontSize: 12, marginBottom: 20, textAlign: 'center' },
-  table: { display: 'flex', flexDirection: 'column' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    borderBottom: '1 solid #ccc',
+    paddingBottom: 10,
+  },
+  logo: { width: 70, height: 70 },
+  headerText: { flex: 1, marginLeft: 12, textAlign: 'left' },
+  title: { fontSize: 16, fontWeight: 'bold' },
+  subtitle: { fontSize: 11, marginTop: 4, color: '#444' },
+  table: { display: 'flex', flexDirection: 'column', marginTop: 10 },
   row: { flexDirection: 'row', borderBottom: '1 solid black' },
   cell: { flex: 1, padding: 4 },
-  header: { backgroundColor: '#eee', fontWeight: 'bold' },
+  headerRow: { backgroundColor: '#eee', fontWeight: 'bold' },
 });
 
 interface ActaData {
@@ -29,10 +40,18 @@ export function ActaPDF({ data }: { data: ActaData }) {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <Text style={styles.title}>Acta de Notas</Text>
-        <Text style={styles.subtitle}>{data.curso} ({data.codigo}) - Tramo {data.tramo} - Período {data.periodo}</Text>
+        <View style={styles.header}>
+          <Image src={`${process.env.NEXTAUTH_URL}/logo-ubv.png`} style={styles.logo} />
+          <View style={styles.headerText}>
+            <Text style={styles.title}>Acta de Notas</Text>
+            <Text style={styles.subtitle}>
+              {data.curso} ({data.codigo}) - Tramo {data.tramo} - Período {data.periodo}
+            </Text>
+          </View>
+        </View>
+
         <View style={styles.table}>
-          <View style={[styles.row, styles.header]}>
+          <View style={[styles.row, styles.headerRow]}>
             <Text style={styles.cell}>Estudiante</Text>
             <Text style={styles.cell}>Cédula</Text>
             <Text style={styles.cell}>Asist. (%)</Text>

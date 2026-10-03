@@ -2,22 +2,19 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import FlechaAtras from '@/components/FlechaAtras';
-import StudentManager from '@/components/StudentManager';
+import CreateUserForm from '@/components/CreateUserForm';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
-export default async function CoordinatorStudentsPage() {
+export default async function NewUserPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user || session.user.role !== 'COORDINADOR') {
     redirect('/login');
   }
+
   return (
-    <div>
-      <div className="px-6 pt-4 max-w-6xl mx-auto">
-        <FlechaAtras label="Volver al panel" />
-      </div>
-      <StudentManager role="COORDINADOR" />
+    <div className="p-6 max-w-2xl mx-auto">
+      <FlechaAtras label="Volver al panel" />
+      <h1 className="text-4xl font-bold mb-8 mt-4">Crear Usuario</h1>
+      <CreateUserForm />
     </div>
   );
 }

@@ -23,6 +23,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
   }
 
+  const duplicado = await sql`
+    SELECT id FROM curso
+    WHERE materia_id = ${materiaId} AND periodo_id = ${periodoId}
+    LIMIT 1
+  `;
+  if (duplicado.rows.length > 0) {
+    return NextResponse.json(
+      { error: 'Ya existe un curso con esa materia en ese período.' },
+      { status: 400 }
+    );
+  }
+
   const { rows: [materia] } = await sql`
     SELECT codigo, nombre FROM materia WHERE id = ${materiaId}
   `;

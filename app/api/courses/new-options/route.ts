@@ -4,7 +4,14 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   const materias = await sql`SELECT id, codigo, nombre, tramo FROM materia ORDER BY tramo, codigo`;
   const periodos = await sql`SELECT id, nombre FROM periodo ORDER BY nombre`;
-  const profesores = await sql`SELECT id, nombre FROM usuario WHERE rol = 'PROFESOR'`;
+  const profesores = await sql`
+    SELECT id, nombre
+    FROM usuario
+    WHERE rol = 'PROFESOR'
+      AND nombre IS NOT NULL
+      AND nombre <> ''
+    ORDER BY nombre
+  `;
   return NextResponse.json({
     materias: materias.rows,
     periodos: periodos.rows,

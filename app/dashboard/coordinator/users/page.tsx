@@ -1,24 +1,24 @@
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 import { sql } from '@/lib/db';
 import FlechaAtras from '@/components/FlechaAtras';
-import BulkUploadForm from '@/components/BulkUploadForm';
-
-interface Usuario {
-  id: string;
-  nombre: string;
-  email: string;
-  rol: string;
-  cedula: string | null;
-  telefono: string | null;
-}
+import UsersTabs from '@/components/UsersTabs';
 
 export default async function UsersPage() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user || session.user.role !== 'COORDINADOR') redirect('/login');
+
   const { rows } = await sql`
     SELECT id, nombre, email, rol, cedula, telefono
     FROM usuario
+    WHERE rol IN ('ESTUDIANTE', 'PROFESOR')
+      AND nombre IS NOT NULL
+      AND TRIM(nombre) <> ''
     ORDER BY nombre
   `;
 
-  const users: Usuario[] = rows.map(row => ({
+  const usuarios = rows.map(row => ({
     id: row.id as string,
     nombre: row.nombre as string,
     email: row.email as string,
@@ -30,32 +30,8 @@ export default async function UsersPage() {
   return (
     <div className="p-6">
       <FlechaAtras label="Volver al panel" />
-      <h1 className="text-3xl mb-6 mt-2">Gestión de Usuarios</h1>
-      <div className="mb-6">
-        <BulkUploadForm />
-      </div>
-      <table className="w-full text-left border border-gray-600">
-        <thead>
-          <tr className="bg-gray-700">
-            <th className="p-2">Nombre</th>
-            <th className="p-2">Email</th>
-            <th className="p-2">Rol</th>
-            <th className="p-2">Cédula</th>
-            <th className="p-2">Teléfono</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map(u => (
-            <tr key={u.id} className="border-t border-gray-600">
-              <td className="p-2">{u.nombre}</td>
-              <td className="p-2">{u.email}</td>
-              <td className="p-2">{u.rol}</td>
-              <td className="p-2">{u.cedula || '-'}</td>
-              <td className="p-2">{u.telefono || '-'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <h1 className="text-4xl font-bold mb-8 mt-4">Usuarios</h1>
+      <UsersTabs usuarios={usuarios} />
     </div>
   );
 }
